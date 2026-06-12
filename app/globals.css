@@ -183,6 +183,38 @@
   animation: fade-up 0.35s cubic-bezier(0.25, 1, 0.4, 1) both;
 }
 
+/* Cuando se conoce hacia dónde se navegó (swipe o click a otra pestaña),
+   el panel entra deslizándose desde ese lado para continuar el gesto. */
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(56px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-56px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.tab-panel[data-activation-direction="right"] {
+  animation-name: slide-in-right;
+}
+
+.tab-panel[data-activation-direction="left"] {
+  animation-name: slide-in-left;
+}
+
 /* Entrada escalonada de tarjetas: cada una espera --i * 35ms. */
 .stagger-item {
   animation: fade-up 0.45s cubic-bezier(0.25, 1, 0.4, 1) both;
@@ -201,6 +233,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .tab-panel,
+  .tab-panel[data-activation-direction],
   .stagger-item,
   .header-enter {
     animation: none;
