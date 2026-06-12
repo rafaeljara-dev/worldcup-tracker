@@ -111,18 +111,37 @@ export function ScheduleRail({
   // Nada de scrollIntoView: ese también scrollea la página y la app
   // abría con el header fuera de pantalla.
   const scrollToToday = () => {
-    const position = () => {
+    const box = scrollBoxRef.current;
+    if (!box) return;
+    const target = () => {
       const section = todayRef.current;
-      const box = scrollBoxRef.current;
-      if (!section || !box) return;
-      box.scrollTop =
+      if (!section) return null;
+      return (
         section.getBoundingClientRect().top -
         box.getBoundingClientRect().top +
-        box.scrollTop;
+        box.scrollTop
+      );
     };
-    position();
-    // Segundo pase: content-visibility materializa alturas reales al scrollear.
-    requestAnimationFrame(position);
+    const behavior: ScrollBehavior = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches
+      ? "auto"
+      : "smooth";
+    const top = target();
+    if (top === null) return;
+    box.scrollTo({ top, behavior });
+    // content-visibility materializa alturas reales durante el scroll, así
+    // que el destino puede moverse: corrige una vez al terminar la animación.
+    box.addEventListener(
+      "scrollend",
+      () => {
+        const t = target();
+        if (t !== null && Math.abs(box.scrollTop - t) > 1) {
+          box.scrollTo({ top: t, behavior });
+        }
+      },
+      { once: true },
+    );
   };
 
   const hasToday = today !== null && days.some(({ date }) => date === today);

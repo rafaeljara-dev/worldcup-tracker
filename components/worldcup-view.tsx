@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays } from "lucide-react";
 import {
   Tabs,
@@ -22,12 +22,43 @@ import {
 
 const KNOCKOUT_STAGES = ["R32", "R16", "QF", "SF", "F"] as const;
 
+// Orden visual de las pestañas, para navegar con swipe.
+const TAB_ORDER: string[] = ["CAL", ...STAGES.map((s) => s.key)];
+
+// Umbrales del swipe: recorrido mínimo y dominancia horizontal clara,
+// para no confundirlo con el scroll vertical del calendario.
+const SWIPE_MIN_PX = 56;
+const SWIPE_H_RATIO = 1.5;
+
 const TRIGGER_CLASS =
   "z-10 flex-1 rounded-full px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors duration-200 after:hidden data-active:!bg-transparent data-active:text-primary-foreground";
 
 export function WorldCupView({ initialMatches }: { initialMatches: Match[] }) {
   // Fixture vivo: pre-render del build + refresh client-side (clave en GitHub Pages).
   const matches = useWorldCup(initialMatches);
+
+  // Pestaña controlada: además de los triggers, se navega con swipe.
+  const [tab, setTab] = useState("CAL");
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStart.current =
+      e.touches.length === 1
+        ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+        : null;
+  };
+
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (!start) return;
+    const dx = e.changedTouches[0].clientX - start.x;
+    const dy = e.changedTouches[0].clientY - start.y;
+    if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy) * SWIPE_H_RATIO)
+      return;
+    const next = TAB_ORDER[TAB_ORDER.indexOf(tab) + (dx < 0 ? 1 : -1)];
+    if (next) setTab(next);
+  };
 
   // Reloj para badges "En juego": null hasta montar para no romper la hidratación.
   const [now, setNow] = useState<number | null>(null);
@@ -61,7 +92,15 @@ export function WorldCupView({ initialMatches }: { initialMatches: Match[] }) {
   );
 
   return (
-    <Tabs defaultValue="CAL" className="w-full">
+    <Tabs
+      value={tab}
+      onValueChange={(v) => {
+        if (typeof v === "string") setTab(v);
+      }}
+      className="w-full"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
       <TabsList
         variant="line"
         className="sticky top-2 z-20 mx-auto flex w-full max-w-md justify-between rounded-full border border-white/10 bg-card/70 px-1.5 py-1 backdrop-blur-md"
