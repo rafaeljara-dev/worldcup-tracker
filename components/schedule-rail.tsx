@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import type { Match } from "@/lib/worldcup";
 import { groupStageByDate } from "@/lib/worldcup";
 import { matchStatus, type MatchStatus } from "@/lib/match-status";
@@ -100,7 +100,7 @@ export function ScheduleRail({
   // Posiciona el día de hoy DENTRO del contenedor con scroll propio.
   // Nada de scrollIntoView: ese también scrollea la página y la app
   // abría con el header fuera de pantalla.
-  useEffect(() => {
+  const scrollToToday = () => {
     const position = () => {
       const section = todayRef.current;
       const box = scrollBoxRef.current;
@@ -112,9 +112,10 @@ export function ScheduleRail({
     };
     position();
     // Segundo pase: content-visibility materializa alturas reales al scrollear.
-    const raf = requestAnimationFrame(position);
-    return () => cancelAnimationFrame(raf);
-  }, [today]);
+    requestAnimationFrame(position);
+  };
+
+  const hasToday = today !== null && days.some(({ date }) => date === today);
 
   return (
     <div
@@ -123,9 +124,20 @@ export function ScheduleRail({
         className,
       )}
     >
-      <h3 className="px-4 pt-4 pb-2 text-sm font-semibold text-foreground">
-        Calendario · Fase de grupos
-      </h3>
+      <div className="flex items-center justify-between gap-2 px-4 pt-4 pb-2">
+        <h3 className="text-sm font-semibold text-foreground">
+          Calendario · Fase de grupos
+        </h3>
+        {hasToday && (
+          <button
+            type="button"
+            onClick={scrollToToday}
+            className="rounded-full bg-success/15 px-2.5 py-0.5 text-[11px] font-bold text-success transition-colors hover:bg-success/25"
+          >
+            Hoy
+          </button>
+        )}
+      </div>
       <div
         ref={scrollBoxRef}
         className="no-scrollbar max-h-[calc(100dvh-13rem)] overflow-y-auto overscroll-contain px-4 pb-4"
