@@ -6,7 +6,6 @@ import {
   Tabs,
   TabsList,
   TabsTrigger,
-  TabsContent,
   TabsIndicator,
 } from "@/components/ui/tabs";
 import { GroupTable } from "@/components/group-table";
@@ -19,6 +18,8 @@ import {
   knockoutMatches,
   type Match,
 } from "@/lib/worldcup";
+import { isRealTeam } from "@/lib/teams";
+import { cn } from "@/lib/utils";
 
 const KNOCKOUT_STAGES = ["R32", "R16", "QF"] as const;
 
@@ -49,14 +50,18 @@ export function WorldCupView({ initialMatches }: { initialMatches: Match[] }) {
   // Pestaña controlada: además de los triggers, se navega con swipe.
   const [tab, setTab] = useState("CAL");
 
-  // Swipe con arrastre: el panel sigue al dedo (transform directo al DOM,
-  // sin re-renders). Al soltar: pasa a la pestaña vecina si recorrió el
-  // umbral, o regresa animado a su lugar si no. El eje se decide una sola
-  // vez por gesto para no pelear con el scroll vertical del calendario.
-  const panelsRef = useRef<HTMLDivElement | null>(null);
+  // Swipe tipo pager: todas las secciones viven montadas, lado a lado, en
+  // una pista horizontal, así la vecina ya se ve entrando mientras
+  // arrastras. La pista sigue al dedo (transform directo al DOM, sin
+  // re-renders) y al soltar anima hacia la vecina si recorrió el umbral o
+  // regresa a su lugar si no. El eje del gesto se decide una sola vez por
+  // toque para no pelear con el scroll vertical del calendario.
+  const trackRef = useRef<HTMLDivElement | null>(null);
   const drag = useRef<{ x: number; y: number; axis: "h" | "v" | null } | null>(
     null,
   );
+
+  const trackX = (i: number) => `translateX(${i * -100}%)`;
 
   const onTouchStart = (e: React.TouchEvent) => {
     drag.current =
@@ -67,7 +72,7 @@ export function WorldCupView({ initialMatches }: { initialMatches: Match[] }) {
 
   const onTouchMove = (e: React.TouchEvent) => {
     const d = drag.current;
-    const el = panelsRef.current;
+    const el = trackRef.current;
     if (!d || !el) return;
     const dx = e.touches[0].clientX - d.x;
     const dy = e.touches[0].clientY - d.y;
@@ -82,40 +87,37 @@ export function WorldCupView({ initialMatches }: { initialMatches: Match[] }) {
     const hasNeighbor = dx < 0 ? i < TAB_ORDER.length - 1 : i > 0;
     el.style.transition = "none";
     // Con resistencia cuando no hay pestaña hacia ese lado.
-    el.style.transform = `translateX(${hasNeighbor ? dx : dx / 3}px)`;
-  };
-
-  const resetDrag = (el: HTMLDivElement) => {
-    el.style.transition = "";
-    el.style.transform = "";
+    el.style.transform = `translateX(calc(${i * -100}% + ${
+      hasNeighbor ? dx : dx / 3
+    }px))`;
   };
 
   const onTouchEnd = (e: React.TouchEvent) => {
     const d = drag.current;
     drag.current = null;
-    const el = panelsRef.current;
+    const el = trackRef.current;
     if (!d || !el || d.axis !== "h") return;
+    // De vuelta a la transición CSS de la pista para animar el destino.
+    el.style.transition = "";
     const dx = e.changedTouches[0].clientX - d.x;
-    const next = TAB_ORDER[TAB_ORDER.indexOf(tab) + (dx < 0 ? 1 : -1)];
+    const i = TAB_ORDER.indexOf(tab);
+    const next = TAB_ORDER[i + (dx < 0 ? 1 : -1)];
     if (Math.abs(dx) >= SWIPE_MIN_PX && next) {
-      // El panel nuevo entra con su animación direccional (CSS).
-      resetDrag(el);
+      // El re-render mueve la pista hasta la pestaña vecina.
       setTab(next);
-    } else if (Math.abs(dx) < 2) {
-      resetDrag(el);
     } else {
-      // No alcanzó: regresa suave a su lugar.
-      el.style.transition = "transform 0.3s cubic-bezier(0.25, 1, 0.4, 1)";
-      el.style.transform = "translateX(0px)";
-      el.addEventListener("transitionend", () => resetDrag(el), {
-        once: true,
-      });
+      // No alcanzó: regresa a su lugar.
+      el.style.transform = trackX(i);
     }
   };
 
   const onTouchCancel = () => {
     drag.current = null;
-    if (panelsRef.current) resetDrag(panelsRef.current);
+    const el = trackRef.current;
+    if (el) {
+      el.style.transition = "";
+      el.style.transform = trackX(TAB_ORDER.indexOf(tab));
+    }
   };
 
   // Reloj para badges "En juego": null hasta montar para no romper la hidratación.
@@ -138,19 +140,24 @@ export function WorldCupView({ initialMatches }: { initialMatches: Match[] }) {
 
   const groups = useMemo(() => buildGroups(matches), [matches]);
   const gsMatches = useMemo(() => matches.filter((m) => m.group), [matches]);
-  const knockout = useMemo(
-    () => ({
+  const knockout = useMemo(() => {
+    // La pestaña final junta semifinales y final, pero hasta que se conozca
+    // algún clasificado muestra solo el placeholder "Esperando resultados"
+    // en vez de tarjetas crípticas tipo "W97 vs W98".
+    const fin = [
+      ...knockoutMatches(matches, "SF"),
+      ...knockoutMatches(matches, "F"),
+    ];
+    const finKnown = fin.some(
+      (m) => isRealTeam(m.team1) || isRealTeam(m.team2),
+    );
+    return {
       R32: knockoutMatches(matches, "R32"),
       R16: knockoutMatches(matches, "R16"),
       QF: knockoutMatches(matches, "QF"),
-      // La pestaña final junta semifinales y final.
-      FIN: [
-        ...knockoutMatches(matches, "SF"),
-        ...knockoutMatches(matches, "F"),
-      ],
-    }),
-    [matches],
-  );
+      FIN: finKnown ? fin : [],
+    };
+  }, [matches]);
 
   return (
     <Tabs
@@ -183,57 +190,86 @@ export function WorldCupView({ initialMatches }: { initialMatches: Match[] }) {
         </TabsTrigger>
       </TabsList>
 
-      {/* Los panels viven en este wrapper, que sigue al dedo durante el
-          swipe. touch-pan-y deja el scroll vertical en manos del navegador. */}
+      {/* Pager: recorta la pista y deja el scroll vertical al navegador. */}
       <div
-        ref={panelsRef}
-        className="touch-pan-y"
+        className="mt-6 touch-pan-y overflow-hidden"
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
         onTouchCancel={onTouchCancel}
       >
-        {/* Calendario: la vista principal */}
-        <TabsContent value="CAL" className="tab-panel mt-6">
-          <ScheduleRail
-            matches={gsMatches}
-            now={now}
-            className="mx-auto max-w-2xl"
-          />
-        </TabsContent>
+        <div
+          ref={trackRef}
+          className="flex transition-transform duration-300 ease-[cubic-bezier(0.25,1,0.4,1)] motion-reduce:transition-none"
+          style={{ transform: trackX(TAB_ORDER.indexOf(tab)) }}
+        >
+          {/* Calendario: la vista principal */}
+          <Slide active={tab === "CAL"}>
+            <ScheduleRail
+              matches={gsMatches}
+              now={now}
+              className="mx-auto max-w-2xl"
+            />
+          </Slide>
 
-        {/* Fase de grupos: solo las tablas */}
-        <TabsContent value="GS" className="tab-panel mt-6">
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {groups.map((g, i) => (
-              <div
-                key={g.name}
-                className="stagger-item"
-                style={{ "--i": i } as React.CSSProperties}
-              >
-                <GroupTable group={g} />
-              </div>
-            ))}
-          </div>
-        </TabsContent>
+          {/* Fase de grupos: solo las tablas */}
+          <Slide active={tab === "GS"}>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {groups.map((g, i) => (
+                <div
+                  key={g.name}
+                  className="stagger-item"
+                  style={{ "--i": i } as React.CSSProperties}
+                >
+                  <GroupTable group={g} />
+                </div>
+              ))}
+            </div>
+          </Slide>
 
-        {/* Eliminatorias */}
-        {KNOCKOUT_STAGES.map((stage) => (
-          <TabsContent key={stage} value={stage} className="tab-panel mt-6">
-            <KnockoutGrid matches={knockout[stage]} now={now} />
-          </TabsContent>
-        ))}
+          {/* Eliminatorias */}
+          {KNOCKOUT_STAGES.map((stage) => (
+            <Slide key={stage} active={tab === stage}>
+              <KnockoutGrid matches={knockout[stage]} now={now} />
+            </Slide>
+          ))}
 
-        {/* Semifinales y final: una sola pestaña al cierre del torneo */}
-        <TabsContent value={FINALS_TAB.key} className="tab-panel mt-6">
-          <KnockoutGrid
-            matches={knockout.FIN}
-            now={now}
-            emptyMessage="Esperando resultados…"
-          />
-        </TabsContent>
+          {/* Semifinales y final: una sola pestaña al cierre del torneo */}
+          <Slide active={tab === FINALS_TAB.key}>
+            <KnockoutGrid
+              matches={knockout.FIN}
+              now={now}
+              emptyMessage="Esperando resultados…"
+            />
+          </Slide>
+        </div>
       </div>
     </Tabs>
+  );
+}
+
+/**
+ * Una sección de la pista del pager. Las inactivas quedan inertes (sin foco
+ * ni interacción) y recortadas a un alto de viewport: solo se asoman durante
+ * el arrastre y no estiran la página.
+ */
+function Slide({
+  active,
+  children,
+}: {
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      inert={!active || undefined}
+      className={cn(
+        "w-full min-w-0 shrink-0",
+        !active && "max-h-dvh overflow-hidden",
+      )}
+    >
+      {children}
+    </div>
   );
 }
 
