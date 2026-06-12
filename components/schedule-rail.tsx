@@ -95,10 +95,25 @@ export function ScheduleRail({
   const days = groupStageByDate(matches);
   const today = now === null ? null : localIsoDate(now);
   const todayRef = useRef<HTMLElement | null>(null);
+  const scrollBoxRef = useRef<HTMLDivElement | null>(null);
 
-  // Al abrir el calendario, salta al día de hoy (si hay partidos hoy).
+  // Posiciona el día de hoy DENTRO del contenedor con scroll propio.
+  // Nada de scrollIntoView: ese también scrollea la página y la app
+  // abría con el header fuera de pantalla.
   useEffect(() => {
-    todayRef.current?.scrollIntoView({ block: "start" });
+    const position = () => {
+      const section = todayRef.current;
+      const box = scrollBoxRef.current;
+      if (!section || !box) return;
+      box.scrollTop =
+        section.getBoundingClientRect().top -
+        box.getBoundingClientRect().top +
+        box.scrollTop;
+    };
+    position();
+    // Segundo pase: content-visibility materializa alturas reales al scrollear.
+    const raf = requestAnimationFrame(position);
+    return () => cancelAnimationFrame(raf);
   }, [today]);
 
   return (
@@ -111,7 +126,10 @@ export function ScheduleRail({
       <h3 className="px-4 pt-4 pb-2 text-sm font-semibold text-foreground">
         Calendario · Fase de grupos
       </h3>
-      <div className="px-4 pb-4">
+      <div
+        ref={scrollBoxRef}
+        className="no-scrollbar max-h-[calc(100dvh-13rem)] overflow-y-auto px-4 pb-4"
+      >
         {days.map(({ date, matches: dayMatches }) => {
           const { label } = formatDate(date);
           const isToday = date === today;
@@ -119,9 +137,9 @@ export function ScheduleRail({
             <section
               key={date}
               ref={isToday ? todayRef : undefined}
-              className="schedule-day scroll-mt-20 border-t border-white/5 first:border-t-0"
+              className="schedule-day border-t border-white/5 first:border-t-0"
             >
-              <p className="sticky top-12 z-10 -mx-4 flex items-center gap-2 bg-card/80 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-primary/90 backdrop-blur">
+              <p className="sticky top-0 z-10 -mx-4 flex items-center gap-2 bg-card/80 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-primary/90 backdrop-blur">
                 {label}
                 {isToday && (
                   <span className="rounded-full bg-success/15 px-1.5 py-px text-[9px] font-bold text-success">
