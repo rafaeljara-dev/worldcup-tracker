@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useRef } from "react";
 import type { Match } from "@/lib/worldcup";
 import { groupStageByDate } from "@/lib/worldcup";
 import { matchStatus, type MatchStatus } from "@/lib/match-status";
@@ -72,6 +75,13 @@ function ScheduleRow({
   );
 }
 
+/** "2026-06-12" en hora local del usuario. */
+function localIsoDate(now: number): string {
+  const d = new Date(now);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 /** Calendario de la fase de grupos, agrupado por día. */
 export function ScheduleRail({
   matches,
@@ -83,6 +93,13 @@ export function ScheduleRail({
   className?: string;
 }) {
   const days = groupStageByDate(matches);
+  const today = now === null ? null : localIsoDate(now);
+  const todayRef = useRef<HTMLElement | null>(null);
+
+  // Al abrir el calendario, salta al día de hoy (si hay partidos hoy).
+  useEffect(() => {
+    todayRef.current?.scrollIntoView({ block: "start" });
+  }, [today]);
 
   return (
     <div
@@ -97,13 +114,20 @@ export function ScheduleRail({
       <div className="px-4 pb-4">
         {days.map(({ date, matches: dayMatches }) => {
           const { label } = formatDate(date);
+          const isToday = date === today;
           return (
             <section
               key={date}
-              className="schedule-day border-t border-white/5 first:border-t-0"
+              ref={isToday ? todayRef : undefined}
+              className="schedule-day scroll-mt-20 border-t border-white/5 first:border-t-0"
             >
-              <p className="sticky top-12 z-10 -mx-4 bg-card/80 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-primary/90 backdrop-blur">
+              <p className="sticky top-12 z-10 -mx-4 flex items-center gap-2 bg-card/80 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-primary/90 backdrop-blur">
                 {label}
+                {isToday && (
+                  <span className="rounded-full bg-success/15 px-1.5 py-px text-[9px] font-bold text-success">
+                    Hoy
+                  </span>
+                )}
               </p>
               <ul className="divide-y divide-white/5">
                 {dayMatches.map((m, i) => (

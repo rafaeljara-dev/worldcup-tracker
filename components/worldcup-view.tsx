@@ -51,18 +51,13 @@ export function WorldCupView({ initialMatches }: { initialMatches: Match[] }) {
   );
 
   return (
-    <Tabs defaultValue="GS" className="w-full">
+    <Tabs defaultValue="CAL" className="w-full">
       <TabsList
         variant="line"
         className="sticky top-2 z-20 mx-auto flex w-full max-w-md justify-between rounded-full border border-white/10 bg-card/70 px-1.5 py-1 backdrop-blur-md"
       >
         {/* Pill que se desliza hasta la pestaña activa */}
         <TabsIndicator className="z-0 rounded-full bg-primary shadow-[0_2px_12px_-2px] shadow-primary/50" />
-        {STAGES.map((s) => (
-          <TabsTrigger key={s.key} value={s.key} className={TRIGGER_CLASS}>
-            {s.label}
-          </TabsTrigger>
-        ))}
         <TabsTrigger
           value="CAL"
           aria-label="Calendario"
@@ -70,7 +65,21 @@ export function WorldCupView({ initialMatches }: { initialMatches: Match[] }) {
         >
           <CalendarDays className="size-3.5" />
         </TabsTrigger>
+        {STAGES.map((s) => (
+          <TabsTrigger key={s.key} value={s.key} className={TRIGGER_CLASS}>
+            {s.label}
+          </TabsTrigger>
+        ))}
       </TabsList>
+
+      {/* Calendario: la vista principal */}
+      <TabsContent value="CAL" className="tab-panel mt-6">
+        <ScheduleRail
+          matches={gsMatches}
+          now={now}
+          className="mx-auto max-w-2xl"
+        />
+      </TabsContent>
 
       {/* Fase de grupos: solo las tablas */}
       <TabsContent value="GS" className="tab-panel mt-6">
@@ -93,15 +102,6 @@ export function WorldCupView({ initialMatches }: { initialMatches: Match[] }) {
           <KnockoutGrid matches={knockout[stage]} now={now} />
         </TabsContent>
       ))}
-
-      {/* Calendario con pestaña propia */}
-      <TabsContent value="CAL" className="tab-panel mt-6">
-        <ScheduleRail
-          matches={gsMatches}
-          now={now}
-          className="mx-auto max-w-2xl"
-        />
-      </TabsContent>
     </Tabs>
   );
 }
