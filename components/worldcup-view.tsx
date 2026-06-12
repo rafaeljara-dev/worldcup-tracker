@@ -37,6 +37,16 @@ export function WorldCupView({ initialMatches }: { initialMatches: Match[] }) {
     return () => clearInterval(t);
   }, []);
 
+  // La app es una sola vista con scroll interno propio: no tiene sentido que
+  // el navegador restaure el scroll del documento de la sesión anterior
+  // (en PWA standalone relanzaba con el header fuera de pantalla).
+  useEffect(() => {
+    if ("scrollRestoration" in history) {
+      history.scrollRestoration = "manual";
+    }
+    window.scrollTo(0, 0);
+  }, []);
+
   const groups = useMemo(() => buildGroups(matches), [matches]);
   const gsMatches = useMemo(() => matches.filter((m) => m.group), [matches]);
   const knockout = useMemo(

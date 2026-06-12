@@ -128,7 +128,7 @@ export function ScheduleRail({
       </h3>
       <div
         ref={scrollBoxRef}
-        className="no-scrollbar max-h-[calc(100dvh-13rem)] overflow-y-auto px-4 pb-4"
+        className="no-scrollbar max-h-[calc(100dvh-13rem)] overflow-y-auto overscroll-contain px-4 pb-4"
       >
         {days.map(({ date, matches: dayMatches }) => {
           const { label } = formatDate(date);
