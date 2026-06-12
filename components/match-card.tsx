@@ -7,7 +7,7 @@ import {
 } from "@/lib/worldcup";
 import { matchStatus } from "@/lib/match-status";
 import { TeamLabel } from "@/components/team-row";
-import { formatDate, formatTime } from "@/lib/format";
+import { formatDate, formatTime, visitorTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { MapPin } from "lucide-react";
 
@@ -24,12 +24,16 @@ export function MatchCard({
   const winner = winnerIndex(match);
   const status = now === null ? null : matchStatus(match, now);
   const { label } = formatDate(match.date);
+  // Hora en la zona del visitante; hasta montar cae a la hora de la sede
+  // para no romper la hidratación.
+  const local = now === null ? null : visitorTime(match);
 
   return (
     <div className="flex h-full flex-col gap-3 rounded-2xl border border-white/8 bg-card/70 p-4 backdrop-blur-sm transition-[background-color,transform] duration-200 hover:bg-white/[0.03] active:scale-[0.99]">
       <div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground">
         <span className="tabular-nums">
-          {label} · {formatTime(match.time)}
+          {label} · {local?.time ?? formatTime(match.time)}
+          {local?.nextDay && " (+1 día)"}
         </span>
         <span className="flex items-center gap-1.5">
           {status === "live" && <LiveBadge />}
