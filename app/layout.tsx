@@ -50,6 +50,7 @@ export default function RootLayout({
       <body className="min-h-full">
         <SerwistProvider
           swUrl={withBase("/sw.js")}
+          options={{ scope: withBase("/") }}
           disable={process.env.NODE_ENV === "development"}
         >
           {children}
