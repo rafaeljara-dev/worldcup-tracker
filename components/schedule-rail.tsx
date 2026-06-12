@@ -4,7 +4,7 @@ import { useRef } from "react";
 import type { Match } from "@/lib/worldcup";
 import { groupStageByDate } from "@/lib/worldcup";
 import { matchStatus, type MatchStatus } from "@/lib/match-status";
-import { formatDate, formatTime } from "@/lib/format";
+import { formatDate, formatTime, visitorTime } from "@/lib/format";
 import { displayName, flagSrc } from "@/lib/teams";
 import { cn } from "@/lib/utils";
 
@@ -36,17 +36,27 @@ function ScheduleRow({
   status: MatchStatus | null;
 }) {
   const ft = match.score?.ft;
+  // Hora en la zona del visitante; hasta montar (status null) cae a la
+  // hora de la sede para no romper la hidratación.
+  const local = status === null ? null : visitorTime(match);
 
   return (
     <li className="flex items-center gap-2 py-2">
-      <span className="w-11 shrink-0 text-[11px] font-medium tabular-nums text-muted-foreground">
+      <span className="w-16 shrink-0 text-[11px] font-medium tabular-nums text-muted-foreground">
         {status === "live" ? (
           <span className="flex items-center gap-1 font-bold text-success">
             <span className="size-1.5 animate-pulse rounded-full bg-success" />
             Live
           </span>
         ) : (
-          formatTime(match.time)
+          <>
+            {local?.time ?? formatTime(match.time)}
+            {local?.nextDay && (
+              <span className="block text-[9px] text-muted-foreground/60">
+                +1 día
+              </span>
+            )}
+          </>
         )}
       </span>
       <div className="flex min-w-0 flex-1 items-center gap-1.5">
