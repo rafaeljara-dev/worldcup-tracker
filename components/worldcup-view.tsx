@@ -11,6 +11,7 @@ import {
 import { GroupTable } from "@/components/group-table";
 import { MatchCard } from "@/components/match-card";
 import { ScheduleRail } from "@/components/schedule-rail";
+import { useNow } from "@/lib/use-now";
 import { useWorldCup } from "@/lib/use-worldcup";
 import {
   STAGES,
@@ -121,12 +122,7 @@ export function WorldCupView({ initialMatches }: { initialMatches: Match[] }) {
   };
 
   // Reloj para badges "En juego": null hasta montar para no romper la hidratación.
-  const [now, setNow] = useState<number | null>(null);
-  useEffect(() => {
-    setNow(Date.now());
-    const t = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(t);
-  }, []);
+  const now = useNow();
 
   // La app es una sola vista con scroll interno propio: no tiene sentido que
   // el navegador restaure el scroll del documento de la sesión anterior
