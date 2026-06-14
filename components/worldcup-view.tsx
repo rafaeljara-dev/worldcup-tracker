@@ -176,28 +176,36 @@ export function WorldCupView({ initialMatches }: { initialMatches: Match[] }) {
       }}
       className="w-full"
     >
-      <TabsList
-        variant="line"
-        className="sticky top-2 z-20 mx-auto flex w-full max-w-md justify-between rounded-full border border-white/10 bg-card/70 px-1.5 py-1 backdrop-blur-md"
-      >
-        {/* Pill que se desliza hasta la pestaña activa */}
-        <TabsIndicator className="z-0 rounded-full bg-primary shadow-[0_2px_12px_-2px] shadow-primary/50" />
-        <TabsTrigger
-          value="CAL"
-          aria-label="Calendario"
-          className={TRIGGER_CLASS}
+      {/* Barra de tabs flotante. El desvanecido detrás/encima difumina hacia
+          el fondo el contenido que se desliza por detrás al hacer scroll. */}
+      <div className="sticky top-0 z-30 pt-2">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[calc(100%+1.75rem)] bg-gradient-to-b from-background via-background/75 to-transparent backdrop-blur-md [mask-image:linear-gradient(to_bottom,black,black_50%,transparent)]"
+        />
+        <TabsList
+          variant="line"
+          className="mx-auto flex w-full max-w-md justify-between rounded-full border border-white/10 bg-card/70 px-1.5 py-1 backdrop-blur-md"
         >
-          <CalendarDays className="size-3.5" />
-        </TabsTrigger>
-        {VISIBLE_STAGES.map((s) => (
-          <TabsTrigger key={s.key} value={s.key} className={TRIGGER_CLASS}>
-            {s.label}
+          {/* Pill que se desliza hasta la pestaña activa */}
+          <TabsIndicator className="z-0 rounded-full bg-primary shadow-[0_2px_12px_-2px] shadow-primary/50" />
+          <TabsTrigger
+            value="CAL"
+            aria-label="Calendario"
+            className={TRIGGER_CLASS}
+          >
+            <CalendarDays className="size-3.5" />
           </TabsTrigger>
-        ))}
-        <TabsTrigger value={FINALS_TAB.key} className={TRIGGER_CLASS}>
-          {FINALS_TAB.label}
-        </TabsTrigger>
-      </TabsList>
+          {VISIBLE_STAGES.map((s) => (
+            <TabsTrigger key={s.key} value={s.key} className={TRIGGER_CLASS}>
+              {s.label}
+            </TabsTrigger>
+          ))}
+          <TabsTrigger value={FINALS_TAB.key} className={TRIGGER_CLASS}>
+            {FINALS_TAB.label}
+          </TabsTrigger>
+        </TabsList>
+      </div>
 
       {/* Pager: recorta la pista y deja el scroll vertical al navegador. */}
       <div

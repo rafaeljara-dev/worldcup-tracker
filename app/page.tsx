@@ -7,7 +7,7 @@ export default async function Home() {
   const data = await getWorldCup();
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 pb-16 sm:px-6">
+    <main className="mx-auto w-full max-w-6xl px-4 pb-[calc(env(safe-area-inset-bottom)+4rem)] sm:px-6">
       <AppHeader />
       <WorldCupView initialMatches={data.matches} />
     </main>
