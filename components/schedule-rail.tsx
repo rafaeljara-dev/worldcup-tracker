@@ -180,7 +180,7 @@ export function ScheduleRail({
               ref={isToday ? todayRef : undefined}
               className="schedule-day border-t border-white/5 first:border-t-0"
             >
-              <p className="sticky top-0 z-10 -mx-4 flex items-center justify-center gap-2 bg-card/80 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-primary/90 backdrop-blur">
+              <p className="sticky top-0 z-10 -mx-4 flex items-center gap-2 bg-card/80 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-primary/90 backdrop-blur">
                 {label}
                 {isToday && (
                   <span className="rounded-full bg-success/15 px-1.5 py-px text-[9px] font-bold text-success">
