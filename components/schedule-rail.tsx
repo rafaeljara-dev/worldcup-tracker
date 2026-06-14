@@ -165,7 +165,7 @@ export function ScheduleRail({
       </div>
       <div className="px-4 pb-4">
         {days.map(({ date, matches: dayMatches }) => {
-          const { label } = formatDate(date);
+          const { full } = formatDate(date);
           const isToday = date === today;
           return (
             <section
@@ -173,8 +173,8 @@ export function ScheduleRail({
               ref={isToday ? todayRef : undefined}
               className="schedule-day border-t border-white/5 first:border-t-0"
             >
-              <p className="flex items-center justify-center gap-2 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-primary/90">
-                {label}
+              <p className="flex items-center gap-2 py-2.5 text-xs font-semibold tracking-wide text-primary/90">
+                {full}
                 {isToday && (
                   <span className="rounded-full bg-success/15 px-1.5 py-px text-[9px] font-bold text-success">
                     Hoy

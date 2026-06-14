@@ -5,22 +5,34 @@ import type { Match } from "@/lib/worldcup";
 import { kickoffUtc } from "@/lib/match-status";
 
 const WEEKDAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+const WEEKDAYS_FULL = [
+  "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado",
+];
 const MONTHS = [
   "ene", "feb", "mar", "abr", "may", "jun",
   "jul", "ago", "sep", "oct", "nov", "dic",
 ];
+const MONTHS_FULL = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+];
 
-/** "2026-06-11" -> { weekday: "Jue", short: "11 jun", full: "Jueves 11 jun" } */
+/**
+ * "2026-06-11" -> { weekday: "Jue", short: "11 jun", label: "Jue 11 jun",
+ * full: "Jueves 11 Junio" }
+ */
 export function formatDate(iso: string) {
   const [y, m, d] = iso.split("-").map(Number);
   // Construimos en UTC para evitar corrimientos por zona horaria.
   const date = new Date(Date.UTC(y, m - 1, d));
   const wd = WEEKDAYS[date.getUTCDay()];
   const mon = MONTHS[m - 1];
+  const monFull = MONTHS_FULL[m - 1];
   return {
     weekday: wd,
     short: `${d} ${mon}`,
     label: `${wd} ${d} ${mon}`,
+    full: `${WEEKDAYS_FULL[date.getUTCDay()]} ${d} ${monFull[0].toUpperCase()}${monFull.slice(1)}`,
   };
 }
 
