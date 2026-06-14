@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import type { Match } from "@/lib/worldcup";
 import { groupStageByDate } from "@/lib/worldcup";
 import { matchStatus, type MatchStatus } from "@/lib/match-status";
@@ -105,69 +105,35 @@ export function ScheduleRail({
   const days = groupStageByDate(matches);
   const today = now === null ? null : localIsoDate(now);
   const todayRef = useRef<HTMLElement | null>(null);
-  const scrollBoxRef = useRef<HTMLDivElement | null>(null);
 
-  // La caja del calendario tiene scroll propio; su alto se calcula para que
-  // el fondo siempre caiga dentro del viewport. Un offset fijo (antes 13rem)
-  // subestimaba la cabecera real y empujaba el último día fuera de pantalla;
-  // como la caja usa overscroll-contain el scroll no encadenaba al documento
-  // y ese final quedaba inalcanzable. Medimos la posición real de la caja y
-  // recalculamos en cada cambio de viewport (incluida la barra de URL móvil).
-  const [maxH, setMaxH] = useState<number | null>(null);
-  useEffect(() => {
-    const box = scrollBoxRef.current;
-    if (!box) return;
-    const measure = () => {
-      // Offset absoluto del tope de la caja en el documento (estable ante el
-      // scroll, ya que getBoundingClientRect es relativo al viewport).
-      const top = box.getBoundingClientRect().top + window.scrollY;
-      const vh = window.visualViewport?.height ?? window.innerHeight;
-      // 64px de respiro inferior = el pb-16 del <main>, para que la card
-      // entera quepa y no quede scroll del documento que pelee con la caja.
-      setMaxH(Math.max(220, Math.round(vh - top - 64)));
-    };
-    measure();
-    // La fuente puede cambiar el alto de la cabecera al cargar.
-    document.fonts?.ready.then(measure);
-    window.addEventListener("resize", measure);
-    window.visualViewport?.addEventListener("resize", measure);
-    return () => {
-      window.removeEventListener("resize", measure);
-      window.visualViewport?.removeEventListener("resize", measure);
-    };
-  }, []);
-
-  // Posiciona el día de hoy DENTRO del contenedor con scroll propio.
-  // Nada de scrollIntoView: ese también scrollea la página y la app
-  // abría con el header fuera de pantalla.
+  // El calendario fluye con el scroll del documento, igual que las demás
+  // pestañas (sin contenedor con scroll propio). "Hoy" salta al día de hoy
+  // con scroll de la ventana, dejando la fecha justo debajo de los tabs
+  // flotantes.
   const scrollToToday = () => {
-    const box = scrollBoxRef.current;
-    if (!box) return;
-    const target = () => {
-      const section = todayRef.current;
-      if (!section) return null;
-      return (
-        section.getBoundingClientRect().top -
-        box.getBoundingClientRect().top +
-        box.scrollTop
-      );
-    };
+    const section = todayRef.current;
+    if (!section) return;
     const behavior: ScrollBehavior = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches
       ? "auto"
       : "smooth";
-    const top = target();
-    if (top === null) return;
-    box.scrollTo({ top, behavior });
+    // Hueco para que la fecha quede visible bajo la barra de tabs.
+    const TAB_OFFSET = 72;
+    const target = () =>
+      Math.max(
+        0,
+        section.getBoundingClientRect().top + window.scrollY - TAB_OFFSET,
+      );
+    window.scrollTo({ top: target(), behavior });
     // content-visibility materializa alturas reales durante el scroll, así
     // que el destino puede moverse: corrige una vez al terminar la animación.
-    box.addEventListener(
+    window.addEventListener(
       "scrollend",
       () => {
         const t = target();
-        if (t !== null && Math.abs(box.scrollTop - t) > 1) {
-          box.scrollTo({ top: t, behavior });
+        if (Math.abs(window.scrollY - t) > 1) {
+          window.scrollTo({ top: t, behavior });
         }
       },
       { once: true },
@@ -197,11 +163,7 @@ export function ScheduleRail({
           </button>
         )}
       </div>
-      <div
-        ref={scrollBoxRef}
-        style={maxH !== null ? { maxHeight: maxH } : undefined}
-        className="no-scrollbar max-h-[calc(100dvh-13rem)] overflow-y-auto overscroll-contain px-4 pb-4"
-      >
+      <div className="px-4 pb-4">
         {days.map(({ date, matches: dayMatches }) => {
           const { label } = formatDate(date);
           const isToday = date === today;
@@ -211,7 +173,7 @@ export function ScheduleRail({
               ref={isToday ? todayRef : undefined}
               className="schedule-day border-t border-white/5 first:border-t-0"
             >
-              <p className="sticky top-0 z-10 -mx-4 flex items-center gap-2 bg-card/80 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-primary/90 backdrop-blur">
+              <p className="flex items-center justify-center gap-2 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-primary/90">
                 {label}
                 {isToday && (
                   <span className="rounded-full bg-success/15 px-1.5 py-px text-[9px] font-bold text-success">
