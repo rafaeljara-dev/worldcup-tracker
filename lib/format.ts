@@ -19,7 +19,7 @@ const MONTHS_FULL = [
 
 /**
  * "2026-06-11" -> { weekday: "Jue", short: "11 jun", label: "Jue 11 jun",
- * full: "Jueves 11 junio" }
+ * full: "Jueves 11 Junio" }
  */
 export function formatDate(iso: string) {
   const [y, m, d] = iso.split("-").map(Number);
@@ -27,11 +27,12 @@ export function formatDate(iso: string) {
   const date = new Date(Date.UTC(y, m - 1, d));
   const wd = WEEKDAYS[date.getUTCDay()];
   const mon = MONTHS[m - 1];
+  const monFull = MONTHS_FULL[m - 1];
   return {
     weekday: wd,
     short: `${d} ${mon}`,
     label: `${wd} ${d} ${mon}`,
-    full: `${WEEKDAYS_FULL[date.getUTCDay()]} ${d} ${MONTHS_FULL[m - 1]}`,
+    full: `${WEEKDAYS_FULL[date.getUTCDay()]} ${d} ${monFull[0].toUpperCase()}${monFull.slice(1)}`,
   };
 }
 
