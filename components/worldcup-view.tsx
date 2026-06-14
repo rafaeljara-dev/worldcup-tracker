@@ -138,6 +138,15 @@ export function WorldCupView({ initialMatches }: { initialMatches: Match[] }) {
     window.scrollTo(0, 0);
   }, []);
 
+  // Cada pestaña es su propia vista, así que al cambiar volvemos arriba. Sin
+  // esto, al pasar de una pestaña larga (que scrollea el documento) a una
+  // corta como el calendario, el scrollY del documento se queda atorado: la
+  // página ya no es tan alta como para regresarlo y la vista corta aparece
+  // empujada fuera de pantalla sin forma de reacomodarla.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [tab]);
+
   const groups = useMemo(() => buildGroups(matches), [matches]);
   const gsMatches = useMemo(() => matches.filter((m) => m.group), [matches]);
   const knockout = useMemo(() => {
