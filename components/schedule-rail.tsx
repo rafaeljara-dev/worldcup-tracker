@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Match } from "@/lib/worldcup";
 import { groupStageByDate } from "@/lib/worldcup";
 import { matchStatus, type MatchStatus } from "@/lib/match-status";
@@ -107,6 +107,36 @@ export function ScheduleRail({
   const todayRef = useRef<HTMLElement | null>(null);
   const scrollBoxRef = useRef<HTMLDivElement | null>(null);
 
+  // La caja del calendario tiene scroll propio; su alto se calcula para que
+  // el fondo siempre caiga dentro del viewport. Un offset fijo (antes 13rem)
+  // subestimaba la cabecera real y empujaba el último día fuera de pantalla;
+  // como la caja usa overscroll-contain el scroll no encadenaba al documento
+  // y ese final quedaba inalcanzable. Medimos la posición real de la caja y
+  // recalculamos en cada cambio de viewport (incluida la barra de URL móvil).
+  const [maxH, setMaxH] = useState<number | null>(null);
+  useEffect(() => {
+    const box = scrollBoxRef.current;
+    if (!box) return;
+    const measure = () => {
+      // Offset absoluto del tope de la caja en el documento (estable ante el
+      // scroll, ya que getBoundingClientRect es relativo al viewport).
+      const top = box.getBoundingClientRect().top + window.scrollY;
+      const vh = window.visualViewport?.height ?? window.innerHeight;
+      // 64px de respiro inferior = el pb-16 del <main>, para que la card
+      // entera quepa y no quede scroll del documento que pelee con la caja.
+      setMaxH(Math.max(220, Math.round(vh - top - 64)));
+    };
+    measure();
+    // La fuente puede cambiar el alto de la cabecera al cargar.
+    document.fonts?.ready.then(measure);
+    window.addEventListener("resize", measure);
+    window.visualViewport?.addEventListener("resize", measure);
+    return () => {
+      window.removeEventListener("resize", measure);
+      window.visualViewport?.removeEventListener("resize", measure);
+    };
+  }, []);
+
   // Posiciona el día de hoy DENTRO del contenedor con scroll propio.
   // Nada de scrollIntoView: ese también scrollea la página y la app
   // abría con el header fuera de pantalla.
@@ -169,6 +199,7 @@ export function ScheduleRail({
       </div>
       <div
         ref={scrollBoxRef}
+        style={maxH !== null ? { maxHeight: maxH } : undefined}
         className="no-scrollbar max-h-[calc(100dvh-13rem)] overflow-y-auto overscroll-contain px-4 pb-4"
       >
         {days.map(({ date, matches: dayMatches }) => {
