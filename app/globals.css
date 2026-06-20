@@ -178,11 +178,6 @@
   }
 }
 
-/* Panel de pestaña: entra al activarse (base-ui monta/desmonta los panels). */
-.tab-panel {
-  animation: fade-up 0.35s cubic-bezier(0.25, 1, 0.4, 1) both;
-}
-
 /* Entrada escalonada de tarjetas: cada una espera --i * 35ms. */
 .stagger-item {
   animation: fade-up 0.45s cubic-bezier(0.25, 1, 0.4, 1) both;
@@ -200,7 +195,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tab-panel,
   .stagger-item,
   .header-enter {
     animation: none;

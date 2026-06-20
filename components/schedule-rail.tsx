@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import type { Match } from "@/lib/worldcup";
 import { groupStageByDate } from "@/lib/worldcup";
 import { matchStatus, type MatchStatus } from "@/lib/match-status";
-import { formatDate, formatTime } from "@/lib/format";
+import { formatDate, formatTime, visitorTime } from "@/lib/format";
 import { displayName, flagSrc } from "@/lib/teams";
 import { cn } from "@/lib/utils";
 
@@ -36,17 +36,27 @@ function ScheduleRow({
   status: MatchStatus | null;
 }) {
   const ft = match.score?.ft;
+  // Hora en la zona del visitante; hasta montar (status null) cae a la
+  // hora de la sede para no romper la hidratación.
+  const local = status === null ? null : visitorTime(match);
 
   return (
     <li className="flex items-center gap-2 py-2">
-      <span className="w-11 shrink-0 text-[11px] font-medium tabular-nums text-muted-foreground">
+      <span className="w-16 shrink-0 text-[11px] font-medium tabular-nums text-muted-foreground">
         {status === "live" ? (
           <span className="flex items-center gap-1 font-bold text-success">
             <span className="size-1.5 animate-pulse rounded-full bg-success" />
             Live
           </span>
         ) : (
-          formatTime(match.time)
+          <>
+            {local?.time ?? formatTime(match.time)}
+            {local?.nextDay && (
+              <span className="block text-[9px] text-muted-foreground/60">
+                +1 día
+              </span>
+            )}
+          </>
         )}
       </span>
       <div className="flex min-w-0 flex-1 items-center gap-1.5">
@@ -95,26 +105,42 @@ export function ScheduleRail({
   const days = groupStageByDate(matches);
   const today = now === null ? null : localIsoDate(now);
   const todayRef = useRef<HTMLElement | null>(null);
-  const scrollBoxRef = useRef<HTMLDivElement | null>(null);
 
-  // Posiciona el día de hoy DENTRO del contenedor con scroll propio.
-  // Nada de scrollIntoView: ese también scrollea la página y la app
-  // abría con el header fuera de pantalla.
-  useEffect(() => {
-    const position = () => {
-      const section = todayRef.current;
-      const box = scrollBoxRef.current;
-      if (!section || !box) return;
-      box.scrollTop =
-        section.getBoundingClientRect().top -
-        box.getBoundingClientRect().top +
-        box.scrollTop;
-    };
-    position();
-    // Segundo pase: content-visibility materializa alturas reales al scrollear.
-    const raf = requestAnimationFrame(position);
-    return () => cancelAnimationFrame(raf);
-  }, [today]);
+  // El calendario fluye con el scroll del documento, igual que las demás
+  // pestañas (sin contenedor con scroll propio). "Hoy" salta al día de hoy
+  // con scroll de la ventana, dejando la fecha justo debajo de los tabs
+  // flotantes.
+  const scrollToToday = () => {
+    const section = todayRef.current;
+    if (!section) return;
+    const behavior: ScrollBehavior = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches
+      ? "auto"
+      : "smooth";
+    // Hueco para que la fecha quede visible bajo la barra de tabs.
+    const TAB_OFFSET = 72;
+    const target = () =>
+      Math.max(
+        0,
+        section.getBoundingClientRect().top + window.scrollY - TAB_OFFSET,
+      );
+    window.scrollTo({ top: target(), behavior });
+    // content-visibility materializa alturas reales durante el scroll, así
+    // que el destino puede moverse: corrige una vez al terminar la animación.
+    window.addEventListener(
+      "scrollend",
+      () => {
+        const t = target();
+        if (Math.abs(window.scrollY - t) > 1) {
+          window.scrollTo({ top: t, behavior });
+        }
+      },
+      { once: true },
+    );
+  };
+
+  const hasToday = today !== null && days.some(({ date }) => date === today);
 
   return (
     <div
@@ -123,15 +149,23 @@ export function ScheduleRail({
         className,
       )}
     >
-      <h3 className="px-4 pt-4 pb-2 text-sm font-semibold text-foreground">
-        Calendario · Fase de grupos
-      </h3>
-      <div
-        ref={scrollBoxRef}
-        className="no-scrollbar max-h-[calc(100dvh-13rem)] overflow-y-auto overscroll-contain px-4 pb-4"
-      >
+      <div className="flex items-center justify-between gap-2 px-4 pt-4 pb-2">
+        <h3 className="text-sm font-semibold text-foreground">
+          Calendario · Fase de grupos
+        </h3>
+        {hasToday && (
+          <button
+            type="button"
+            onClick={scrollToToday}
+            className="rounded-full bg-success/15 px-2.5 py-0.5 text-[11px] font-bold text-success transition-colors hover:bg-success/25"
+          >
+            Hoy
+          </button>
+        )}
+      </div>
+      <div className="px-4 pb-4">
         {days.map(({ date, matches: dayMatches }) => {
-          const { label } = formatDate(date);
+          const { full } = formatDate(date);
           const isToday = date === today;
           return (
             <section
@@ -139,8 +173,8 @@ export function ScheduleRail({
               ref={isToday ? todayRef : undefined}
               className="schedule-day border-t border-white/5 first:border-t-0"
             >
-              <p className="sticky top-0 z-10 -mx-4 flex items-center gap-2 bg-card/80 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-primary/90 backdrop-blur">
-                {label}
+              <p className="flex items-center gap-2 py-2.5 text-[13px] font-bold uppercase tracking-wide text-primary/90">
+                {full}
                 {isToday && (
                   <span className="rounded-full bg-success/15 px-1.5 py-px text-[9px] font-bold text-success">
                     Hoy

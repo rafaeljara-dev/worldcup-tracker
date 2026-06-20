@@ -1,9 +1,9 @@
-import { finalScore, penalties } from "@/lib/worldcup";
+import { finalScore, penalties, type Goal } from "@/lib/worldcup";
 import type { ResolvedMatch, ResolvedSlot } from "@/lib/bracket";
 import { matchStatus } from "@/lib/match-status";
 import { displayName, flagRectSrc } from "@/lib/teams";
 import { googleCalendarUrl } from "@/lib/calendar";
-import { formatDate, formatTime } from "@/lib/format";
+import { formatDate, formatTime, visitorTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { CalendarPlus, MapPin } from "lucide-react";
 
@@ -25,6 +25,9 @@ export function MatchCard({
   const winner = rm.winnerIdx;
   const status = now === null ? null : matchStatus(match, now);
   const { label } = formatDate(match.date);
+  // Hora en la zona del visitante; hasta montar cae a la hora de la sede
+  // para no romper la hidratación.
+  const local = now === null ? null : visitorTime(match);
 
   const projected =
     rm.team1.status === "projected" || rm.team2.status === "projected";
@@ -34,12 +37,14 @@ export function MatchCard({
   const name1 = rm.team1.team ?? rm.team1.label;
   const name2 = rm.team2.team ?? rm.team2.label;
   const calUrl = googleCalendarUrl(match, name1, name2);
+  const hasGoals = Boolean(match.goals1?.length || match.goals2?.length);
 
   return (
     <div className="flex h-full flex-col gap-3 rounded-2xl border border-white/8 bg-card/70 p-4 backdrop-blur-sm">
       <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
         <span className="tabular-nums">
-          {label} · {formatTime(match.time)}
+          {label} · {local?.time ?? formatTime(match.time)}
+          {local?.nextDay && " (+1 día)"}
         </span>
         <span className="flex items-center gap-1.5">
           {status === "live" && <LiveBadge />}
@@ -69,6 +74,13 @@ export function MatchCard({
         <TeamSide slot={rm.team2} dim={winner === 0} />
       </div>
 
+      {hasGoals && (
+        <div className="flex justify-between gap-3 text-[10px] leading-snug text-muted-foreground">
+          <Scorers goals={match.goals1} align="left" />
+          <Scorers goals={match.goals2} align="right" />
+        </div>
+      )}
+
       <div className="mt-auto flex items-center justify-between gap-2 pt-1">
         <span className="flex min-w-0 items-center gap-1.5 text-[12px] text-muted-foreground">
           <MapPin className="size-3.5 shrink-0" />
@@ -86,6 +98,19 @@ export function MatchCard({
         </a>
       </div>
     </div>
+  );
+}
+
+function Scorers({ goals, align }: { goals?: Goal[]; align: "left" | "right" }) {
+  if (!goals?.length) return <span className="flex-1" />;
+  return (
+    <ul className={cn("flex-1 space-y-0.5", align === "right" && "text-right")}>
+      {goals.map((g, i) => (
+        <li key={`${g.name}-${g.minute}-${i}`} className="truncate">
+          {g.name} {g.minute}&rsquo;
+        </li>
+      ))}
+    </ul>
   );
 }
 

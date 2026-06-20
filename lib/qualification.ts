@@ -28,10 +28,6 @@ export interface TeamScenario {
   /** Posición proyectada con los resultados actuales (1..4). */
   rank: number;
   outlook: Outlook;
-  /** Aún puede terminar 1.º o 2.º (clasificación directa). */
-  canTop2: boolean;
-  /** Aún puede terminar 3.º (opta a mejor tercero). */
-  canThird: boolean;
   /** Etiqueta breve de situación o de qué necesita en su próximo partido. */
   note: string;
 }
@@ -175,14 +171,18 @@ function contentionNote(
 
   if (draw.worst <= 2) return "Le basta empatar";
   if (win.worst <= 2) return "Gana y pasa";
-  if (win.best <= 2) return "Gana y espera";
+  // "Debe ganar" va antes que "Gana y espera": si perder elimina, esa es la
+  // advertencia relevante aunque ganar también deje viva la opción de top-2.
   if (lose.best >= 4) return "Debe ganar";
+  if (win.best <= 2) return "Gana y espera";
   return canThird ? "Pelea por 3.º" : "En disputa";
 }
 
 /** Analiza los 12 grupos: tabla proyectada + escenario por equipo. */
-export function analyzeGroups(matches: Match[]): GroupScenario[] {
-  const groups = buildGroups(matches);
+export function analyzeGroups(
+  matches: Match[],
+  groups: Group[] = buildGroups(matches),
+): GroupScenario[] {
   const byGroup = matchesByGroup(matches);
 
   return groups.map((g) => {
@@ -202,8 +202,6 @@ export function analyzeGroups(matches: Match[]): GroupScenario[] {
         ? { best: i + 1, worst: i + 1 }
         : rankBounds(row.team, teams, base, rem);
       const outlook = outlookOf(best, worst);
-      const canTop2 = best <= 2;
-      const canThird = best <= 3 && worst >= 3;
       let note: string;
       if (outlook === "secured") note = "Clasificado";
       else if (outlook === "eliminated") note = "Eliminado";
@@ -216,14 +214,7 @@ export function analyzeGroups(matches: Match[]): GroupScenario[] {
           nextMatch(row.team, gms),
           best <= 3,
         );
-      byTeam.set(row.team, {
-        team: row.team,
-        rank: i + 1,
-        outlook,
-        canTop2,
-        canThird,
-        note,
-      });
+      byTeam.set(row.team, { team: row.team, rank: i + 1, outlook, note });
     });
 
     return { name: g.name, rows: g.rows, done, byTeam };
@@ -267,6 +258,8 @@ export function rankThirdPlaces(groups: Group[]): ThirdPlace[] {
   return thirds.map((t, i) => ({
     ...t,
     rank: i + 1,
-    qualifies: i < 8,
+    // Solo proyectamos como clasificado a un tercero que ya jugó: al inicio
+    // (todos en 0-0-0) el orden sería un desempate alfabético sin sentido.
+    qualifies: i < 8 && t.row.played > 0,
   }));
 }

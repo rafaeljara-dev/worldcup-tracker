@@ -121,8 +121,10 @@ function assignThirds(
   return result;
 }
 
-export function resolveBracket(matches: Match[]): Bracket {
-  const groups = buildGroups(matches);
+export function resolveBracket(
+  matches: Match[],
+  groups: Group[] = buildGroups(matches),
+): Bracket {
   const groupByLetter = new Map<string, Group>(
     groups.map((g) => [g.name.replace(/^Group\s+/i, "").trim(), g]),
   );
