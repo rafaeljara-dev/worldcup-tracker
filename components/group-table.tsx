@@ -45,14 +45,14 @@ export function GroupTable({
   const started = scenario.rows.some((r) => r.played > 0);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/8 bg-card/70 backdrop-blur-sm">
-      <div className="flex items-center justify-between gap-2 px-3 pt-3.5 pb-2">
-        <h3 className="truncate text-sm font-semibold tracking-wide text-foreground">
+    <div className="group-card overflow-hidden rounded-2xl border border-white/8 bg-card/70 backdrop-blur-sm">
+      <div className="flex items-baseline justify-between gap-2 px-3 pt-3.5 pb-2">
+        <h3 className="truncate text-[15px] font-semibold tracking-wide text-foreground">
           {scenario.name}
         </h3>
-        <div className="grid shrink-0 grid-cols-6 text-[11px] font-medium whitespace-nowrap text-muted-foreground">
+        <div className="gt-head flex shrink-0 font-medium whitespace-nowrap text-muted-foreground">
           {COLS.map((c) => (
-            <span key={c} className="w-7 text-center tabular-nums">
+            <span key={c} className="gt-col text-center tabular-nums">
               {c}
             </span>
           ))}
@@ -83,7 +83,7 @@ export function GroupTable({
           return (
             <li
               key={row.team}
-              className="relative border-t border-white/5 px-3 py-2 transition-colors hover:bg-white/[0.03]"
+              className="relative border-t border-white/10 px-3 py-2.5 transition-colors hover:bg-white/[0.03]"
             >
               <span
                 aria-hidden
@@ -92,10 +92,12 @@ export function GroupTable({
                   zone,
                 )}
               />
-              <div className="flex items-center gap-2">
+              {/* Línea principal: número, bandera y nombre alineados y
+                  centrados entre sí; las cifras del grupo a la derecha. */}
+              <div className="flex items-center gap-2.5">
                 <span
                   className={cn(
-                    "w-4 shrink-0 text-center text-xs font-semibold tabular-nums",
+                    "gt-pos w-4 shrink-0 text-center font-semibold tabular-nums",
                     posColor,
                   )}
                 >
@@ -106,34 +108,38 @@ export function GroupTable({
                   <img
                     src={src}
                     alt=""
-                    width={20}
-                    height={20}
+                    width={24}
+                    height={24}
                     loading="lazy"
-                    className="size-5 shrink-0 rounded-full ring-1 ring-white/10"
+                    className="gt-flag shrink-0 rounded-full object-cover ring-1 ring-white/10"
                   />
                 ) : (
-                  <span className="size-5 shrink-0 rounded-full bg-white/10 ring-1 ring-white/10" />
+                  <span className="gt-flag shrink-0 rounded-full bg-white/10 ring-1 ring-white/10" />
                 )}
-                <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+                <span className="gt-name min-w-0 flex-1 truncate font-medium text-foreground">
                   {shortName(row.team)}
                 </span>
-                <div className="grid shrink-0 grid-cols-6 text-[13px] tabular-nums">
+                <div className="gt-stat flex shrink-0 tabular-nums">
                   <Stat>{row.played}</Stat>
                   <Stat>{row.won}</Stat>
                   <Stat>{row.drawn}</Stat>
                   <Stat>{row.lost}</Stat>
                   <Stat>{row.gd > 0 ? `+${row.gd}` : row.gd}</Stat>
-                  <Stat className="font-semibold text-foreground">{row.points}</Stat>
+                  <Stat className="font-semibold text-foreground">
+                    {row.points}
+                  </Stat>
                 </div>
               </div>
 
+              {/* Nota compacta, alineada solo bajo el nombre (espaciadores del
+                  ancho del número y de la bandera). */}
               {status.text && (
-                <div className="mt-0.5 flex items-center gap-2">
+                <div className="mt-0.5 flex items-center gap-2.5">
                   <span className="w-4 shrink-0" aria-hidden />
-                  <span className="size-5 shrink-0" aria-hidden />
+                  <span className="gt-flag shrink-0" aria-hidden />
                   <span
                     className={cn(
-                      "truncate text-[10px] font-medium leading-tight",
+                      "gt-note truncate font-medium leading-tight",
                       TONE_CLASS[status.tone],
                     )}
                   >
@@ -157,7 +163,7 @@ function Stat({
   className?: string;
 }) {
   return (
-    <span className={cn("w-7 text-center text-muted-foreground", className)}>
+    <span className={cn("gt-col text-center text-muted-foreground", className)}>
       {children}
     </span>
   );

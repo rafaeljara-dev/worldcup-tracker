@@ -154,6 +154,38 @@
   scrollbar-width: none;
 }
 
+/* ===== Tabla de grupos: tipografía fluida según el ancho de cada tarjeta =====
+   Cada tarjeta es su propio contenedor (container query): en una tarjeta ancha
+   los textos y las cifras crecen para aprovechar el espacio; en una angosta se
+   reducen para que los nombres nunca choquen con los números (y el nombre, como
+   último recurso, trunca). Los límites van en rem, así el tamaño de fuente del
+   sistema se sigue respetando dentro de un rango seguro. */
+.group-card {
+  container-type: inline-size;
+}
+.gt-head {
+  font-size: clamp(0.625rem, 0.5rem + 0.6cqi, 0.75rem);
+}
+.gt-pos {
+  font-size: clamp(0.8125rem, 0.55rem + 1.4cqi, 1.0625rem);
+}
+.gt-name {
+  font-size: clamp(0.875rem, 0.62rem + 1.35cqi, 1.0625rem);
+}
+.gt-stat {
+  font-size: clamp(0.8125rem, 0.64rem + 0.95cqi, 0.9375rem);
+}
+.gt-note {
+  font-size: clamp(0.6875rem, 0.5rem + 0.9cqi, 0.8125rem);
+}
+.gt-col {
+  width: clamp(1.6rem, 1.3rem + 1.6cqi, 2rem);
+}
+.gt-flag {
+  width: clamp(1.25rem, 1rem + 1.3cqi, 1.5rem);
+  height: clamp(1.25rem, 1rem + 1.3cqi, 1.5rem);
+}
+
 /* ===== Animaciones (estilo Apple: cortas, con desaceleración suave) ===== */
 
 @keyframes fade-up {
