@@ -13,14 +13,11 @@ import { GroupTable } from "@/components/group-table";
 import { MatchCard } from "@/components/match-card";
 import { ScheduleRail } from "@/components/schedule-rail";
 import { useWorldCup } from "@/lib/use-worldcup";
-import {
-  STAGES,
-  buildGroups,
-  knockoutMatches,
-  type Match,
-} from "@/lib/worldcup";
+import { STAGES, type Match } from "@/lib/worldcup";
+import { analyzeGroups } from "@/lib/qualification";
+import { resolveBracket, type KnockoutStage, type ResolvedMatch } from "@/lib/bracket";
 
-const KNOCKOUT_STAGES = ["R32", "R16", "QF", "SF", "F"] as const;
+const KNOCKOUT_STAGES: KnockoutStage[] = ["R32", "R16", "QF", "SF", "F"];
 
 const TRIGGER_CLASS =
   "z-10 flex-1 rounded-full px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors duration-200 after:hidden data-active:!bg-transparent data-active:text-primary-foreground";
@@ -47,17 +44,17 @@ export function WorldCupView({ initialMatches }: { initialMatches: Match[] }) {
     window.scrollTo(0, 0);
   }, []);
 
-  const groups = useMemo(() => buildGroups(matches), [matches]);
+  const scenarios = useMemo(() => analyzeGroups(matches), [matches]);
+  const bracket = useMemo(() => resolveBracket(matches), [matches]);
   const gsMatches = useMemo(() => matches.filter((m) => m.group), [matches]);
-  const knockout = useMemo(
-    () => ({
-      R32: knockoutMatches(matches, "R32"),
-      R16: knockoutMatches(matches, "R16"),
-      QF: knockoutMatches(matches, "QF"),
-      SF: knockoutMatches(matches, "SF"),
-      F: knockoutMatches(matches, "F"),
-    }),
-    [matches],
+
+  // Letras de grupo cuyo 3.º proyecta entrar en los 8 mejores terceros.
+  const thirdsInTop8 = useMemo(
+    () =>
+      new Set(
+        bracket.thirds.filter((t) => t.qualifies).map((t) => `Group ${t.letter}`),
+      ),
+    [bracket],
   );
 
   return (
@@ -68,11 +65,7 @@ export function WorldCupView({ initialMatches }: { initialMatches: Match[] }) {
       >
         {/* Pill que se desliza hasta la pestaña activa */}
         <TabsIndicator className="z-0 rounded-full bg-primary shadow-[0_2px_12px_-2px] shadow-primary/50" />
-        <TabsTrigger
-          value="CAL"
-          aria-label="Calendario"
-          className={TRIGGER_CLASS}
-        >
+        <TabsTrigger value="CAL" aria-label="Calendario" className={TRIGGER_CLASS}>
           <CalendarDays className="size-3.5" />
         </TabsTrigger>
         {STAGES.map((s) => (
@@ -84,32 +77,28 @@ export function WorldCupView({ initialMatches }: { initialMatches: Match[] }) {
 
       {/* Calendario: la vista principal */}
       <TabsContent value="CAL" className="tab-panel mt-6">
-        <ScheduleRail
-          matches={gsMatches}
-          now={now}
-          className="mx-auto max-w-2xl"
-        />
+        <ScheduleRail matches={gsMatches} now={now} className="mx-auto max-w-2xl" />
       </TabsContent>
 
-      {/* Fase de grupos: solo las tablas */}
+      {/* Fase de grupos: tablas con escenarios de clasificación */}
       <TabsContent value="GS" className="tab-panel mt-6">
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {groups.map((g, i) => (
+          {scenarios.map((g, i) => (
             <div
               key={g.name}
               className="stagger-item"
               style={{ "--i": i } as React.CSSProperties}
             >
-              <GroupTable group={g} />
+              <GroupTable scenario={g} thirdInTop8={thirdsInTop8.has(g.name)} />
             </div>
           ))}
         </div>
       </TabsContent>
 
-      {/* Eliminatorias */}
+      {/* Eliminatorias por fase (placeholders resueltos por el motor) */}
       {KNOCKOUT_STAGES.map((stage) => (
         <TabsContent key={stage} value={stage} className="tab-panel mt-6">
-          <KnockoutGrid matches={knockout[stage]} now={now} />
+          <KnockoutGrid matches={bracket.byStage[stage]} now={now} />
         </TabsContent>
       ))}
     </Tabs>
@@ -120,7 +109,7 @@ function KnockoutGrid({
   matches,
   now,
 }: {
-  matches: Match[];
+  matches: ResolvedMatch[];
   now: number | null;
 }) {
   if (!matches?.length) {
@@ -134,11 +123,11 @@ function KnockoutGrid({
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {matches.map((m, i) => (
         <div
-          key={m.num ?? `${m.team1}-${m.team2}-${i}`}
+          key={m.num ?? i}
           className="stagger-item"
           style={{ "--i": i } as React.CSSProperties}
         >
-          <MatchCard match={m} now={now} />
+          <MatchCard rm={m} now={now} />
         </div>
       ))}
     </div>

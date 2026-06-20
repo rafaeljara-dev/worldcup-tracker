@@ -67,13 +67,34 @@ export function isRealTeam(name: string): boolean {
   return Object.prototype.hasOwnProperty.call(TEAM_FLAGS, name);
 }
 
-/** Ruta al SVG de la bandera, o null si es un placeholder. */
+/** Ruta al SVG circular de la bandera, o null si es un placeholder. */
 export function flagSrc(name: string): string | null {
   const code = TEAM_FLAGS[name];
   return code ? withBase(`/flags/${code}.svg`) : null;
 }
 
+/** Ruta al SVG rectangular (4:3) de la bandera, o null si es un placeholder. */
+export function flagRectSrc(name: string): string | null {
+  const code = TEAM_FLAGS[name];
+  return code ? withBase(`/flags-rect/${code}.svg`) : null;
+}
+
 /** Nombre a mostrar (mapea a la variante FIFA si aplica). */
 export function displayName(name: string): string {
   return DISPLAY_NAMES[name] ?? name;
+}
+
+// Nombres cortos para celdas estrechas (tabla de grupos): evitan saltos de línea.
+const SHORT_NAMES: Record<string, string> = {
+  "Bosnia & Herzegovina": "Bosnia",
+  USA: "USA",
+  "South Korea": "Korea",
+  "Saudi Arabia": "S. Arabia",
+  "South Africa": "S. Africa",
+  "New Zealand": "N. Zealand",
+};
+
+/** Nombre corto para celdas estrechas; cae en displayName si no hay versión corta. */
+export function shortName(name: string): string {
+  return SHORT_NAMES[name] ?? displayName(name);
 }
