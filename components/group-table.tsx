@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 const COLS = ["GP", "W", "D", "L", "GD", "PTS"] as const;
 
-type Tone = "secured" | "playoff" | "info" | "eliminated" | "none";
+type Tone = "secured" | "playoff" | "info" | "muted" | "eliminated" | "none";
 
 /** Estado a mostrar bajo cada equipo según su escenario de clasificación. */
 function rowStatus(
@@ -17,8 +17,10 @@ function rowStatus(
   if (ts.outlook === "eliminated") return { text: "Eliminado", tone: "eliminated" };
   // 3.º: lo relevante es si entra en los 8 mejores terceros.
   if (i === 2) {
-    if (thirdInTop8) return { text: "Mejor 3.º", tone: "playoff" };
-    return started ? { text: ts.note, tone: "info" } : { text: "", tone: "none" };
+    if (started && thirdInTop8) return { text: "Mejor 3.º", tone: "playoff" };
+    // 3.º fuera del corte proyectado de mejores terceros: nota en tono neutro
+    // (no la zona dorada), coherente con que el bracket no le da plaza.
+    return started ? { text: ts.note, tone: "muted" } : { text: "", tone: "none" };
   }
   return started ? { text: ts.note, tone: "info" } : { text: "", tone: "none" };
 }
@@ -27,6 +29,7 @@ const TONE_CLASS: Record<Tone, string> = {
   secured: "text-success",
   playoff: "text-chart-4",
   info: "text-chart-4/90",
+  muted: "text-muted-foreground",
   eliminated: "text-muted-foreground/55",
   none: "",
 };

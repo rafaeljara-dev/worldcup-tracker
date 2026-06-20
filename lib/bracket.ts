@@ -26,7 +26,11 @@ import {
   type Group,
   type Match,
 } from "@/lib/worldcup";
-import { rankThirdPlaces, type ThirdPlace } from "@/lib/qualification";
+import {
+  groupLetter,
+  rankThirdPlaces,
+  type ThirdPlace,
+} from "@/lib/qualification";
 
 export type SlotStatus = "confirmed" | "projected" | "pending";
 
@@ -56,7 +60,6 @@ const KO_STAGES: KnockoutStage[] = ["R32", "R16", "QF", "SF", "F"];
 
 export interface Bracket {
   byStage: Record<KnockoutStage, ResolvedMatch[]>;
-  byNum: Map<number, ResolvedMatch>;
   thirds: ThirdPlace[];
 }
 
@@ -126,15 +129,17 @@ export function resolveBracket(
   groups: Group[] = buildGroups(matches),
 ): Bracket {
   const groupByLetter = new Map<string, Group>(
-    groups.map((g) => [g.name.replace(/^Group\s+/i, "").trim(), g]),
+    groups.map((g) => [groupLetter(g.name), g]),
   );
 
   const gmByGroup = matchesByGroup(matches);
   const groupDone = new Map<string, boolean>();
   for (const [name, gms] of gmByGroup) {
-    const letter = name.replace(/^Group\s+/i, "").trim();
-    groupDone.set(letter, gms.every((m) => m.score?.ft));
+    groupDone.set(groupLetter(name), gms.every((m) => m.score?.ft));
   }
+  // Todos los grupos cerrados → los 8 mejores terceros quedan fijos, así que el
+  // cruce de cada tercero pasa de proyectado a confirmado.
+  const allGroupsDone = groups.every((g) => groupDone.get(groupLetter(g.name)));
 
   const thirds = rankThirdPlaces(groups);
   const qualified = new Set(thirds.filter((t) => t.qualifies).map((t) => t.letter));
@@ -159,6 +164,7 @@ export function resolveBracket(
 
   const matchCache = new Map<number, ResolvedMatch>();
   const outcomeCache = new Map<string, ResolvedSlot>();
+  const resolving = new Set<number>(); // nums en curso, para cortar ciclos del feed
 
   const pending = (token: string, label: string): ResolvedSlot => ({
     token,
@@ -195,7 +201,7 @@ export function resolveBracket(
         return {
           token,
           team: row?.team ?? null,
-          status: "projected",
+          status: allGroupsDone ? "confirmed" : "projected",
           label: `3.º Grupo ${letter}`,
           fromGroup: letter,
         };
@@ -244,7 +250,12 @@ export function resolveBracket(
     if (cached) return cached;
     const m = koByNum.get(num);
     if (!m) return null;
+    // Un W##/L## que se refiera a sí mismo o hacia adelante (feed malformado)
+    // dispararía recursión infinita: lo cortamos en seco.
+    if (resolving.has(num)) return null;
+    resolving.add(num);
     const resolved = resolveMatch(m);
+    resolving.delete(num);
     matchCache.set(num, resolved);
     return resolved;
   }
@@ -266,5 +277,5 @@ export function resolveBracket(
     );
   }
 
-  return { byStage, byNum: matchCache, thirds };
+  return { byStage, thirds };
 }
