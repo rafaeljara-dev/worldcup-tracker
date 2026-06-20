@@ -58,3 +58,17 @@ npx serve out     # o cualquier server estático
 
 GitHub Pages (project page) bajo `/worldcup-tracker`. El workflow exporta con
 `NEXT_PUBLIC_BASE_PATH=/worldcup-tracker` y publica `out/` con `actions/deploy-pages`.
+
+## Licencia y uso
+
+Proyecto **personal y sin fines de lucro** (hobby). **No** está afiliado a la FIFA
+ni a ninguna organización oficial; las marcas, nombres y escudos de las selecciones
+pertenecen a sus respectivos dueños.
+
+- **Código**: [PolyForm Noncommercial License 1.0.0](LICENSE.md). Eres libre de
+  **usarlo, estudiarlo, modificarlo y compartirlo con fines no comerciales**
+  (personal, educativo, investigación). **No se permite el uso comercial ni con
+  fines de lucro.**
+- **Datos**: de [openfootball/worldcup.json](https://github.com/openfootball/worldcup.json),
+  dedicados al **dominio público (CC0-1.0)** — libres sin restricciones. Se citan
+  por cortesía (CC0 no exige atribución).
